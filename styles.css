@@ -1,0 +1,275 @@
+:root {
+    --bg-color: #0a0b15;
+    --glass-bg: rgba(20, 22, 35, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --accent: #00ffcc;
+    --text-main: #e0e0ff;
+    --text-dim: #8a8b9c;
+    
+    /* Seed Colors */
+    --col-empty: #1a1b26;
+    --col-photon: #fffbac;
+    --col-root: #4facfe;
+    --col-crystal: #d585ff;
+    --col-decay: #ff4b4b;
+    --col-life: #00f260;
+}
+
+* {
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-color);
+    background-image: url('noise_texture.png');
+    background-size: 200px;
+    color: var(--text-main);
+    font-family: 'Courier New', monospace; /* Monospaced for a "terminal" feel */
+    overflow: hidden;
+}
+
+#app {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+}
+
+/* UI Layering */
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Let clicks pass through to canvas where possible */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--glass-border);
+    pointer-events: auto;
+}
+
+/* Top Bar */
+#top-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-dim);
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* Active Tool Indicator */
+#active-tool-indicator {
+    position: absolute;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.5);
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+#active-tool-indicator.visible {
+    opacity: 1;
+}
+
+/* Control Deck (Bottom Bar) */
+.control-deck {
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 20;
+    padding-bottom: max(15px, env(safe-area-inset-bottom));
+}
+
+.transport-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.action-controls {
+    display: flex;
+    gap: 10px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 20px;
+    padding: 4px;
+}
+
+/* Buttons */
+button {
+    background: none;
+    border: none;
+    color: var(--text-main);
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.icon-btn {
+    width: 44px; /* Touch target min */
+    height: 44px;
+    border-radius: 50%;
+    background-color: rgba(255,255,255,0.05);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 18px;
+    transition: background 0.2s;
+    background-image: url('ui_icons.png');
+    background-size: 600% 100%; /* Sprite sheet math */
+    background-repeat: no-repeat;
+}
+
+.icon-btn:active {
+    background-color: rgba(255,255,255,0.2);
+    transform: scale(0.95);
+}
+
+/* Sprite Mappings */
+#btn-play-pause.paused { background-position: 0% 0; }
+#btn-play-pause.playing { background-position: 20% 0; }
+#btn-reset { background-position: 40% 0; }
+/* Fallback for Step button since it's not in sprite description explicitly or handled by text */
+#btn-step { background-image: none; font-weight: bold; }
+
+.text-btn {
+    padding: 10px 20px;
+    border-radius: 16px;
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0.6;
+    transition: all 0.2s;
+}
+
+.text-btn.active {
+    background: var(--accent);
+    color: #000;
+    opacity: 1;
+}
+
+/* Panels */
+.slide-panel {
+    position: absolute;
+    bottom: 80px; /* Above control deck */
+    left: 0;
+    width: 100%;
+    max-height: 50vh;
+    padding: 20px;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    transform: translateY(110%);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    overflow-y: auto;
+    z-index: 15;
+}
+
+.slide-panel.open {
+    transform: translateY(0);
+}
+
+.slide-panel h3 {
+    margin: 0;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+}
+
+/* Seed Palette */
+.seed-grid {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.seed-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    position: relative;
+}
+
+.seed-btn.selected {
+    border-color: #fff;
+    box-shadow: 0 0 15px var(--accent);
+}
+
+/* Ranges */
+input[type=range] {
+    width: 100%;
+    height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    -webkit-appearance: none;
+}
+
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--text-main);
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* Rule Presets */
+.rule-presets {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+}
+
+.preset-btn {
+    background: rgba(255,255,255,0.1);
+    padding: 8px 16px;
+    border-radius: 8px;
+    white-space: nowrap;
+    color: var(--text-main);
+}
+
+.preset-btn.active {
+    background: var(--col-crystal);
+    color: #fff;
+}
+
+.rule-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-style: italic;
+    line-height: 1.4;
+}
